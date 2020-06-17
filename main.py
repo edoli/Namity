@@ -5,6 +5,7 @@ from pathlib import Path
 from math import *
 from random import*
 from shutil import copyfile
+from functools import partial
 import re
 import os
 import sys
@@ -60,7 +61,7 @@ class Worker(QThread):
                         try:
                             eval('filtered_fns.sort(key=lambda x: {})'.format(self.sort_function))
                         except:
-                            self.change_status.emit('sort error')
+                            self.change_status.emit('Sort function error')
 
                     for i, fn in enumerate(filtered_fns):
                         m = matches[i]
@@ -74,7 +75,7 @@ class Worker(QThread):
 
                     self.change_value.emit((filtered_fns, replaced_fns))
                 except:
-                    self.change_status.emit('regular expression error')
+                    self.change_status.emit('Regular expression error')
 
                 last_regex_src = self.regex_src
                 last_regex_dst = self.regex_dst
@@ -109,6 +110,14 @@ class MainApp(QWidget):
         self.source_list = QListWidget(self)
         self.target_list = QListWidget(self)
 
+        self.source_list.currentRowChanged.connect(partial(self.list_row_changed, 0))
+        self.target_list.currentRowChanged.connect(partial(self.list_row_changed, 1))
+        
+        vs1 = self.source_list.verticalScrollBar()
+        vs2 = self.target_list.verticalScrollBar()
+        vs1.valueChanged.connect(partial(self.move_scrollbar, vs2))
+        vs2.valueChanged.connect(partial(self.move_scrollbar, vs1))
+
         self.execute_button = QPushButton('Execute')
         self.execute_button.clicked.connect(self.execute_replace)
         self.status_bar = QLabel('')
@@ -142,6 +151,9 @@ class MainApp(QWidget):
 
     def execute_replace(self):
         if len(self.filtered_fns) == len(self.replaced_fns):
+            if len(self.replaced_fns) != len(set(self.replaced_fns)):
+                self.regex_status('File name duplication')
+                return
             try:
                 for pair in zip(self.filtered_fns, self.replaced_fns):
                     if self.remove_original_checkbox.isChecked():
@@ -154,10 +166,19 @@ class MainApp(QWidget):
                 # TODO: handle file exists
                 pass
 
+    def move_scrollbar(self, vs, value):
+        vs.setValue(value)
+
     def regex_changed(self):
         self.worker.regex_src = self.source_edit.text()
         self.worker.regex_dst = self.target_edit.text()
         self.worker.sort_function = self.sort_edit.text()
+
+    def list_row_changed(self, index):
+        if index == 0:
+            self.target_list.setCurrentRow(self.source_list.currentRow())
+        elif index == 1:
+            self.source_list.setCurrentRow(self.target_list.currentRow())
 
     def list_changed(self, value):
         self.source_list.clear()
