@@ -144,7 +144,7 @@ class MainApp(QWidget):
         self.layout.addLayout(self.list_layout)
         self.layout.addWidget(self.execute_button)
         self.layout.addWidget(self.status_bar)
-
+        
         self.setLayout(self.layout)
         self.setWindowTitle('Namity')
         self.show()
@@ -195,6 +195,6 @@ class MainApp(QWidget):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    app.setWindowIcon(QIcon('icon.ico'))
+    app.setWindowIcon(QIcon(f'{os.path.dirname(sys.argv[0])}/icon.ico'))
     ex = MainApp()
     sys.exit(app.exec_())
