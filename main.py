@@ -107,6 +107,9 @@ class MainApp(QWidget):
         self.remove_original_checkbox = QCheckBox('Remove original', self)
         self.remove_original_checkbox.setChecked(True)
 
+        self.regist_context_button = QPushButton('Regist context menu', self)
+        self.regist_context_button.clicked.connect(self.add_registry)
+
         self.source_list = QListWidget(self)
         self.target_list = QListWidget(self)
 
@@ -132,6 +135,7 @@ class MainApp(QWidget):
 
         self.option_layout = QHBoxLayout()
         self.option_layout.addWidget(self.remove_original_checkbox)
+        self.option_layout.addWidget(self.regist_context_button)
 
         self.list_layout = QHBoxLayout()
         self.list_layout.addWidget(self.source_list)
@@ -144,7 +148,7 @@ class MainApp(QWidget):
         self.layout.addLayout(self.list_layout)
         self.layout.addWidget(self.execute_button)
         self.layout.addWidget(self.status_bar)
-        
+
         self.setLayout(self.layout)
         self.setWindowTitle('Namity')
         self.show()
@@ -192,6 +196,15 @@ class MainApp(QWidget):
 
     def regex_status(self, value):
         self.status_bar.setText(f'<span style="color:#ff0000;">{value}</span>')
+
+    def add_registry(self):
+        err = os.system(f'{os.path.dirname(sys.argv[0])}\\registry.bat')
+
+        if err == 0:
+            msg = QMessageBox()
+            msg.setText("Context menu registered")
+            msg.setStandardButtons(QMessageBox.Ok)
+            retval = msg.exec_()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
