@@ -30,6 +30,9 @@ if '%errorlevel%' NEQ '0' (
 :--------------------------------------    
 
 REG ADD HKEY_CLASSES_ROOT\Directory\shell\Namity /f /d "&Namity"
+REG ADD HKEY_CLASSES_ROOT\Directory\shell\Namity /f /v Icon /d "%CD%\main.exe"
 REG ADD HKEY_CLASSES_ROOT\Directory\shell\Namity\command /f /d "%CD%\main.exe %%Z"
+
 REG ADD HKEY_CLASSES_ROOT\Directory\Background\shell\Namity /f /d "&Namity"
+REG ADD HKEY_CLASSES_ROOT\Directory\Background\shell\Namity /f /v Icon /d "%CD%\main.exe"
 REG ADD HKEY_CLASSES_ROOT\Directory\Background\shell\Namity\command /f /d "%CD%\main.exe %%Z"
