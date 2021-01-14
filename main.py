@@ -16,7 +16,47 @@ ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
 root_path = sys.argv[1] if len(sys.argv) > 1 else os.getcwd()
 
-def eval_block(new_fn, fn, i, name, ext):
+source_tooltip = 'Regular expression'
+
+target_tooltip = 'i: index \n' + \
+                 'fn: file name \n' + \
+                 'name: file name without extension \n' + \
+                 'ext: extension \n' + \
+                 'is_dir: is directory \n' + \
+                 'st: stat (uid, gid, size, atime, mtime, ctime)'
+
+sort_tooltip = 'fn: file name \n' + \
+               'name: file name without extension \n' + \
+               'ext: extension \n' + \
+               'is_dir: is directory \n' + \
+               'st: stat (uid, gid, size, atime, mtime, ctime)'
+
+class MyStat():
+    def __init__(self, stat):
+        self.uid = stat.st_uid
+        self.gid = stat.st_gid
+        self.size = stat.st_size
+        self.atime = stat.st_atime
+        self.mtime = stat.st_mtime
+        self.ctime = stat.st_ctime
+
+
+def eval_sort_block(sort_function_str, fn, name, ext, is_dir, st):
+    return eval(sort_function_str)
+
+
+def eval_sort(sort_function_str):
+    def sort_func(fn):
+        path = Path(fn)
+        name = path.stem
+        ext = path.suffix
+        if len(ext) > 0 and ext[0] == '.':
+            ext = ext[1:]
+        return eval_sort_block(sort_function_str, fn, name, ext, path.is_dir(), MyStat(path.stat()))
+    return sort_func
+
+
+def eval_block(new_fn, fn, i, name, ext, is_dir, st):
     return eval("f'{}'".format(new_fn))
 
 
@@ -59,7 +99,7 @@ class Worker(QThread):
 
                     if self.sort_function != '':
                         try:
-                            eval('filtered_fns.sort(key=lambda x: {})'.format(self.sort_function))
+                            filtered_fns.sort(key=eval_sort(self.sort_function))
                         except:
                             self.change_status.emit('Sort function error')
 
@@ -70,7 +110,7 @@ class Worker(QThread):
                         if len(ext) > 0 and ext[0] == '.':
                             ext = ext[1:]
                         new_fn = m.expand(self.regex_dst)
-                        new_fn = eval_block(new_fn, fn, i, path.stem, ext)
+                        new_fn = eval_block(new_fn, fn, i, path.stem, ext, path.is_dir(), MyStat(path.stat()))
                         replaced_fns.append(new_fn)
 
                     self.change_value.emit((filtered_fns, replaced_fns))
@@ -101,8 +141,11 @@ class MainApp(QWidget):
         self.sort_edit = QLineEdit('', self)
 
         self.source_edit.textChanged.connect(self.regex_changed)
+        self.source_edit.setToolTip(source_tooltip)
         self.target_edit.textChanged.connect(self.regex_changed)
+        self.target_edit.setToolTip(target_tooltip)
         self.sort_edit.textChanged.connect(self.regex_changed)
+        self.sort_edit.setToolTip(sort_tooltip)
 
         self.remove_original_checkbox = QCheckBox('Remove original', self)
         self.remove_original_checkbox.setChecked(True)
