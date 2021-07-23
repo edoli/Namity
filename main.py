@@ -93,7 +93,7 @@ class Worker(QThread):
                 last_sort_function != self.sort_function or \
                 self.refresh:
 
-                self.change_status.emit('')
+                self.change_status.emit('Loading...')
 
                 try:
                     if self.update_listdir:
@@ -119,19 +119,22 @@ class Worker(QThread):
                         except:
                             self.change_status.emit('Sort function error')
 
-                    for i, fn in enumerate(filtered_fns):
-                        m = matches[i]
-                        path = Path(fn)
-                        ext = path.suffix
-                        if len(ext) > 0 and ext[0] == '.':
-                            ext = ext[1:]
-                        new_fn = m.expand(self.regex_dst)
-                        new_fn = eval_block(new_fn, fn, i, path.stem, ext, path.is_dir(), MyStat(path.stat()))
-                        replaced_fns.append(new_fn)
+                    if self.regex_dst != '':
+                        for i, fn in enumerate(filtered_fns):
+                            m = matches[i]
+                            path = Path(fn)
+                            ext = path.suffix
+                            if len(ext) > 0 and ext[0] == '.':
+                                ext = ext[1:]
+                            new_fn = m.expand(self.regex_dst)
+                            new_fn = eval_block(new_fn, fn, i, path.stem, ext, path.is_dir(), MyStat(path.stat()))
+                            replaced_fns.append(new_fn)
 
                     self.change_value.emit((filtered_fns, replaced_fns))
                 except:
                     self.change_status.emit('Regular expression error')
+
+                self.change_status.emit('')
 
                 last_regex_src = self.regex_src
                 last_regex_dst = self.regex_dst
@@ -226,6 +229,9 @@ class MainApp(QWidget):
                 return
             try:
                 for pair in zip(self.filtered_fns, self.replaced_fns):
+                    if pair[1] == '':
+                        continue
+
                     if self.remove_original_checkbox.isChecked():
                         os.rename(pair[0], pair[1])
                     else:
