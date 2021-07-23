@@ -71,11 +71,22 @@ class Worker(QThread):
         self.regex_dst = ''
         self.sort_function = ''
         self.refresh = False
+        self.update_listdir = False
+        self.recursive = False
+
+    def retrieve_fns(self):
+        if self.recursive:
+            return [str(path) for path in Path('.').rglob('*')]
+        else:
+            return os.listdir()
 
     def run(self):
         last_regex_src = None
         last_regex_dst = None
         last_sort_function = None
+
+        fns = self.retrieve_fns()
+        
         while True:
             if last_regex_src != self.regex_src or \
                 last_regex_dst != self.regex_dst or \
@@ -84,7 +95,12 @@ class Worker(QThread):
 
                 self.change_status.emit('')
 
-                fns = os.listdir()
+                try:
+                    if self.update_listdir:
+                        fns = self.retrieve_fns()
+                        self.update_listdir = False
+                except:
+                    self.change_status.emit('List dir error')
 
                 try:
                     filtered_fns = []
@@ -147,6 +163,9 @@ class MainApp(QWidget):
         self.sort_edit.textChanged.connect(self.regex_changed)
         self.sort_edit.setToolTip(sort_tooltip)
 
+        self.recursive_checkbox = QCheckBox('Resursive', self)
+        self.recursive_checkbox.clicked.connect(self.update_recursive_mode)
+
         self.remove_original_checkbox = QCheckBox('Remove original', self)
         self.remove_original_checkbox.setChecked(True)
 
@@ -167,10 +186,14 @@ class MainApp(QWidget):
         self.execute_button = QPushButton('Execute')
         self.execute_button.clicked.connect(self.execute_replace)
         self.status_bar = QLabel('')
+
+        self.source_layout = QHBoxLayout()
+        self.source_layout.addWidget(self.source_edit)
+        self.source_layout.addWidget(self.recursive_checkbox)
         
         self.form_layout = QGridLayout()
         self.form_layout.addWidget(QLabel('Source'), 0, 0)
-        self.form_layout.addWidget(self.source_edit, 0, 1)
+        self.form_layout.addLayout(self.source_layout, 0, 1)
         self.form_layout.addWidget(QLabel('Destination'), 1, 0)
         self.form_layout.addWidget(self.target_edit, 1, 1)
         self.form_layout.addWidget(QLabel('Sort function'), 2, 0)
@@ -239,6 +262,12 @@ class MainApp(QWidget):
 
     def regex_status(self, value):
         self.status_bar.setText(f'<span style="color:#ff0000;">{value}</span>')
+
+    def update_recursive_mode(self):
+        checked = self.recursive_checkbox.isChecked()
+        self.worker.recursive = checked
+        self.worker.update_listdir = True
+        self.worker.refresh = True
 
     def add_registry(self):
         err = os.system(f'{os.path.dirname(sys.argv[0])}\\registry.bat')
